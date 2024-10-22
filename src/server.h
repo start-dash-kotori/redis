@@ -893,20 +893,53 @@ struct RedisModuleDigest {
 #define OBJ_ENCODING_LISTPACK 11 /* Encoded as a listpack */
 #define OBJ_ENCODING_LISTPACK_EX 12 /* Encoded as listpack, extended with metadata */
 
+// LRU 字段位数
 #define LRU_BITS 24
+// LRU 字段最大值， 24位可以表示的最大值为 (2^{24} - 1)
 #define LRU_CLOCK_MAX ((1<<LRU_BITS)-1) /* Max value of obj->lru */
+// LRU 时钟的分辨率，单位为毫秒。这意味着 LRU 时钟每 1000 毫秒（1 秒）更新一次
 #define LRU_CLOCK_RESOLUTION 1000 /* LRU clock resolution in ms */
 
+// 共享对象的引用计数值。这个值表示全局对象永远不会被销毁
 #define OBJ_SHARED_REFCOUNT INT_MAX     /* Global object never destroyed. */
+// 静态分配对象的引用计数值。这个值表示对象是在栈上分配的，不会被自动销毁
 #define OBJ_STATIC_REFCOUNT (INT_MAX-1) /* Object allocated in the stack. */
+// 第一个特殊引用计数值。这个值用于区分普通对象和特殊对象
 #define OBJ_FIRST_SPECIAL_REFCOUNT OBJ_STATIC_REFCOUNT
 struct redisObject {
+    // 用于表示 Obj 类型，在上方定义了 OBJ_XXX
+    // STRING 0
+    // LIST 1
+    // SET 2
+    // ZSET 3
+    // HASH 4
+    // MODULE 5
+    // STREAM 6
+    // TYPE_MAX 7
     unsigned type:4;
+    // 对象编码方式，在上方定义了 OBJ_ENCODING_XXX
+    // RAW 0
+    // INT 1
+    // HT 2
+    // ZIPMAP 3
+    // LINKEDLIST 4
+    // ZIPLIST 5
+    // INTSET 6
+    // SKIPLIST 7
+    // EMBSTR 8
+    // QUICKLIST 9
+    // STREAM 10
+    // LISTPACK 11
+    // LISTPACK_EX 12
     unsigned encoding:4;
+    // 用于记录对象的最近使用时间（LRU）或最少使用频率（LFU）数据
+    // LRU_BITS 是一个宏定义，通常为 24 位。低 8 位表示频率，高 16 位表示访问时
     unsigned lru:LRU_BITS; /* LRU time (relative to global lru_clock) or
                             * LFU data (least significant 8 bits frequency
                             * and most significant 16 bits access time). */
+    // 引用次数，用于 计数GC
     int refcount;
+    // 指向任意类型的指针，是实际数据
     void *ptr;
 };
 
