@@ -43,6 +43,7 @@
 #define DICT_NOTUSED(V) ((void) V)
 
 typedef struct dictEntry {
+    // void*: 指向未知类型的指针，可以指向任何数据类型
     void *key;
     void *val;
     struct dictEntry *next;
