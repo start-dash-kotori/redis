@@ -966,18 +966,42 @@ typedef struct replBufBlock {
  * by integers from 0 (the default database) up to the max configured
  * database. The database number is the 'id' field in the structure. */
 typedef struct redisDb {
+    //// 键空间和过期管理
+    // 当前存储的所有 k-v
     kvstore *keys;              /* The keyspace for this DB */
+    // 设置了过期的 k-expire time
     kvstore *expires;           /* Timeout of keys with a timeout set */
+    // expire time 的桶，通过过期时间排序，
+    // 可以快速知道谁是下一个要过期的 k，而不用每次遍历 expires 再找到谁最接近 TTL
     ebuckets hexpires;          /* Hash expiration DS. Single TTL per hash (of next min field to expire) */
+
+    //// 阻塞客户端管理
+    // 等待的 k - 等待这个 k 的客户端列表
     dict *blocking_keys;        /* Keys with clients waiting for data (BLPOP)*/
+    // 用于存储特定类型的阻塞键，这个字段主要用于处理某些特殊情况下需要解除阻塞的客户端。
+    // 存储的是那些在键被删除时需要解除阻塞的客户端
     dict *blocking_keys_unblock_on_nokey;   /* Keys with clients waiting for
                                              * data, and should be unblocked if key is deleted (XREADEDGROUP).
                                              * This is a subset of blocking_keys*/
+    // 当数据被加入时，查找 blocking keys 是否包含这个key，
+    // 如果存在这个 key 说明有客户端在阻塞等待这个数据，
+    // 把 blocking keys 中的客户端加入到此处，
+    // 以便 redis 快速通知客户端可以获取数据了
+    // 可以通知的 k - 客户端列表
     dict *ready_keys;           /* Blocked keys that received a PUSH */
+
+    //// 事务管理
+    // 存储被 WATCH 命令监视的键，用于 MULTI/EXEC 命令的条件执行（CAS，Compare And Swap）
     dict *watched_keys;         /* WATCHED keys for MULTI/EXEC CAS */
+
+    //// 数据库标识和其他统计信息
+    // 数据库的唯一标识符
     int id;                     /* Database ID */
+    // 平均 TTL（Time To Live），仅用于统计
     long long avg_ttl;          /* Average TTL, just for stats */
+    // 过期检查周期的游标
     unsigned long expires_cursor; /* Cursor of the active expire cycle. */
+    // 存储需要逐步尝试碎片整理的键名列表
     list *defrag_later;         /* List of key names to attempt to defrag one by one, gradually. */
 } redisDb;
 
