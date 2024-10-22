@@ -44,6 +44,7 @@ static unsigned int dict_force_resize_ratio = 4;
 /* -------------------------- types ----------------------------------------- */
 struct dictEntry {
     void *key;
+    // union 允许同一时间内存在以下任意一个类型的值
     union {
         void *val;
         uint64_t u64;
