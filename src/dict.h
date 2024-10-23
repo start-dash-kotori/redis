@@ -101,6 +101,9 @@ struct dict {
     dictEntry **ht_table[2];
     // 记录每个表中已使用的槽数
     unsigned long ht_used[2];
+    // 哈希表大小的指数，实际大小为 1 << exp
+    // 使用宏方法直接计算每个 ht 的 size 和 size_mask
+    signed char ht_size_exp[2]; /* exponent of size. (size = 1<<exp) */
 
     // 用于标记当前 rehash 的 idx，如果是-1则表示没有进行 rehash
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
@@ -111,8 +114,6 @@ struct dict {
 
     // 是否使用存储键API
     unsigned useStoredKeyApi : 1; /* See comment of storedHashFunction above */
-    // 哈希表大小的指数，实际大小为 1 << exp
-    signed char ht_size_exp[2]; /* exponent of size. (size = 1<<exp) */
     // 如果大于0，则自动调整大小被禁用；小于0表示编码错误
     int16_t pauseAutoResize;  /* If >0 automatic resizing is disallowed (<0 indicates coding error) */
     // 额外的元数据
