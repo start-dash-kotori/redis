@@ -930,15 +930,25 @@ typedef struct clusterSlotToKeyMapping clusterSlotToKeyMapping;
  * by integers from 0 (the default database) up to the max configured
  * database. The database number is the 'id' field in the structure. */
 typedef struct redisDb {
+    // 键空间，存储所有的 k-v
     dict *dict;                 /* The keyspace for this DB */
+    // 过期时间键空间，k-k 的过期时间
     dict *expires;              /* Timeout of keys with a timeout set */
-    dict *blocking_keys;        /* Keys with clients waiting for data (BLPOP)*/
-    dict *ready_keys;           /* Blocked keys that received a PUSH */
-    dict *watched_keys;         /* WATCHED keys for MULTI/EXEC CAS */
-    int id;                     /* Database ID */
-    long long avg_ttl;          /* Average TTL, just for stats */
+    // 过期 k 检查周期的游标
     unsigned long expires_cursor; /* Cursor of the active expire cycle. */
+    // 阻塞键空间，阻塞k - 等待的 client
+    dict *blocking_keys;        /* Keys with clients waiting for data (BLPOP)*/
+    // 已经接受到数据的阻塞k - 对应的 client
+    dict *ready_keys;           /* Blocked keys that received a PUSH */
+    // 在 multi/exec 原子操作中被 watch 命令监控的 k
+    dict *watched_keys;         /* WATCHED keys for MULTI/EXEC CAS */
+    // 当前 db 的 idx
+    int id;                     /* Database ID */
+    // 平均TTL，用于统计，TTL（time to live，剩余存活时间/过期时间）
+    long long avg_ttl;          /* Average TTL, just for stats */
+    // 需要逐步进行碎片整理的键名列表
     list *defrag_later;         /* List of key names to attempt to defrag one by one, gradually. */
+    // 槽到键的映射数组，仅在集群模式下使用（仅限数据库 0）
     clusterSlotToKeyMapping *slots_to_keys; /* Array of slots to keys. Only used in cluster mode (db 0). */
 } redisDb;
 
