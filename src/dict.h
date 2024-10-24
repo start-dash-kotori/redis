@@ -60,16 +60,31 @@ typedef struct dictEntry {
 
 typedef struct dict dict;
 
+/**
+* dictType 定义了一组函数指针，这些函数指针用于处理字典中的键和值的各种操作。<br/>
+* 通过这种方式，可以为不同的数据类型和需求定制不同的字典行为。<br/>
+* 类比 Java 相当于提出了一个 interface，这个 interface 定义了一系列操作，
+* 在不同的 struct 中声明这个参数相当于实现了这个 interface，
+* 在实例化的时候可以动态指定这几个方法应该用什么方式来执行，这比 interface 更灵活。
+*/
 typedef struct dictType {
+    // 计算 hash
     uint64_t (*hashFunction)(const void *key);
+    // 复制 key
     void *(*keyDup)(dict *d, const void *key);
+    // 复制 value
     void *(*valDup)(dict *d, const void *obj);
+    // 比较 key
     int (*keyCompare)(dict *d, const void *key1, const void *key2);
+    // 释放 key
     void (*keyDestructor)(dict *d, void *key);
+    // 释放 value
     void (*valDestructor)(dict *d, void *obj);
+    // 是否允许 dict 扩容
     int (*expandAllowed)(size_t moreMem, double usedRatio);
     /* Allow a dictEntry to carry extra caller-defined metadata.  The
      * extra memory is initialized to 0 when a dictEntry is allocated. */
+    // 每个字典条目附加的元数据字节数
     size_t (*dictEntryMetadataBytes)(dict *d);
 } dictType;
 
