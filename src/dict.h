@@ -44,8 +44,10 @@
 #define DICT_OK 0
 #define DICT_ERR 1
 
+// 相当于是一个HashMap 的 Node，保存了 k-v 和 next，附加了其他元数据
 typedef struct dictEntry {
     void *key;
+    // union 的作用是可以在同一个内存地址上存储多个相同内存大小的数据类型，但是只能存储一个
     union {
         void *val;
         uint64_t u64;
