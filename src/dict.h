@@ -204,38 +204,87 @@ typedef enum {
 } dictResizeEnable;
 
 /* API */
+//// 创建和初始化
 dict *dictCreate(dictType *type);
+
+//// 扩容/缩容
+// 会强行把容量调整到指定大小
 int dictExpand(dict *d, unsigned long size);
+// 尝试扩展字典的容量，如果当前容量足够则不扩展
 int dictTryExpand(dict *d, unsigned long size);
-int dictAdd(dict *d, void *key, void *val);
-dictEntry *dictAddRaw(dict *d, void *key, dictEntry **existing);
-dictEntry *dictAddOrFind(dict *d, void *key);
-int dictReplace(dict *d, void *key, void *val);
-int dictDelete(dict *d, const void *key);
-dictEntry *dictUnlink(dict *d, const void *key);
-void dictFreeUnlinkedEntry(dict *d, dictEntry *he);
-void dictRelease(dict *d);
-dictEntry * dictFind(dict *d, const void *key);
-void *dictFetchValue(dict *d, const void *key);
+// 调整字典的大小，通常在删除大量元素后调用
 int dictResize(dict *d);
-dictIterator *dictGetIterator(dict *d);
-dictIterator *dictGetSafeIterator(dict *d);
-dictEntry *dictNext(dictIterator *iter);
-void dictReleaseIterator(dictIterator *iter);
-dictEntry *dictGetRandomKey(dict *d);
-dictEntry *dictGetFairRandomKey(dict *d);
-unsigned int dictGetSomeKeys(dict *d, dictEntry **des, unsigned int count);
-void dictGetStats(char *buf, size_t bufsize, dict *d);
-uint64_t dictGenHashFunction(const void *key, size_t len);
-uint64_t dictGenCaseHashFunction(const unsigned char *buf, size_t len);
-void dictEmpty(dict *d, void(callback)(dict*));
+// 设置是否允许扩容
 void dictSetResizeEnabled(dictResizeEnable enable);
-int dictRehash(dict *d, int n);
-int dictRehashMilliseconds(dict *d, int ms);
-void dictSetHashFunctionSeed(uint8_t *seed);
-uint8_t *dictGetHashFunctionSeed(void);
+
+//// 插入/更新
+int dictAdd(dict *d, void *key, void *val);
+// 仅添加 key
+dictEntry *dictAddRaw(dict *d, void *key, dictEntry **existing);
+// 向字典中添加一个键值对，如果键已存在则返回现有条目
+dictEntry *dictAddOrFind(dict *d, void *key);
+// 替换字典中的键值对，如果键不存在则添加
+int dictReplace(dict *d, void *key, void *val);
+
+//// 删除/释放
+// 删除一个键值对
+int dictDelete(dict *d, const void *key);
+// 解除链接一个键值对，但不释放内存
+// 为什么会有 unlink：dictUnlink 允许你在删除键值对时暂时不释放其内存，这在某些场景下非常有用，例如：
+// 批量操作: 如果你需要批量删除多个键值对，可以先解除链接，然后统一释放内存，减少频繁的内存分配和释放开销。
+// 性能优化: 在高并发或多线程环境下，延迟释放可以减少锁的竞争，提高性能
+dictEntry *dictUnlink(dict *d, const void *key);
+// 释放上面没有释放内存的键值对
+void dictFreeUnlinkedEntry(dict *d, dictEntry *he);
+// 释放 dict 占用的内存，相当于整个 dict 都被删除了
+void dictRelease(dict *d);
+// 清空字典，仅删除键值对
+void dictEmpty(dict *d, void(callback)(dict*));
+
+//// 查找
+// 找到 key 对应的完整的 entry
+dictEntry * dictFind(dict *d, const void *key);
+// 找到 key 对应的 value
+// void* 是任何类型的指针，因此返回的是任意值
+void *dictFetchValue(dict *d, const void *key);
+
+//// 遍历/迭代
+dictIterator *dictGetIterator(dict *d);
+// 获取安全的字典迭代器，可以在遍历过程中修改字典
+dictIterator *dictGetSafeIterator(dict *d);
+// 获取迭代器的下一个条目
+dictEntry *dictNext(dictIterator *iter);
+//释放迭代器对象
+void dictReleaseIterator(dictIterator *iter);
+// 扫描字典，调用回调函数对字典中的每个条目进行操作
 unsigned long dictScan(dict *d, unsigned long v, dictScanFunction *fn, dictScanBucketFunction *bucketfn, void *privdata);
+
+//// 随机/统计
+// 获取字典中的一个随机键值对
+dictEntry *dictGetRandomKey(dict *d);
+// 获取字典中的一个随机键值对，但保证键值对不会重复
+dictEntry *dictGetFairRandomKey(dict *d);
+// 获取字典中的随机键值对，返回键值对数量
+unsigned int dictGetSomeKeys(dict *d, dictEntry **des, unsigned int count);
+// 获取字典的统计信息
+void dictGetStats(char *buf, size_t bufsize, dict *d);
+
+//// Hash
+// 生成键的哈希值
+uint64_t dictGenHashFunction(const void *key, size_t len);
+// 生成键的哈希值，不区分大小写
+uint64_t dictGenCaseHashFunction(const unsigned char *buf, size_t len);
+// 逐步重哈希字典
+int dictRehash(dict *d, int n);
+// 逐步重哈希字典，每次最多执行指定毫秒
+int dictRehashMilliseconds(dict *d, int ms);
+// 设置哈希函数的种子
+void dictSetHashFunctionSeed(uint8_t *seed);
+// 获取哈希函数的种子
+uint8_t *dictGetHashFunctionSeed(void);
+// 获取键的哈希值
 uint64_t dictGetHash(dict *d, const void *key);
+// 获取键的哈希值，不区分大小写
 dictEntry **dictFindEntryRefByPtrAndHash(dict *d, const void *oldptr, uint64_t hash);
 
 #ifdef REDIS_TEST
