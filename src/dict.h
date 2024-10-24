@@ -88,20 +88,31 @@ typedef struct dictType {
     size_t (*dictEntryMetadataBytes)(dict *d);
 } dictType;
 
+// 通过 exp 计算出 hash table 的大小
 #define DICTHT_SIZE(exp) ((exp) == -1 ? 0 : (unsigned long)1<<(exp))
+// 计算出 hash table 的大小掩码，用于计算 hash table 的 idx
 #define DICTHT_SIZE_MASK(exp) ((exp) == -1 ? 0 : (DICTHT_SIZE(exp))-1)
 
 struct dict {
+    // 指定了 dict 的一系列操作，相当于实现了 dictType 的接口
     dictType *type;
 
+    // 两个 dictEntry 头数组，参考 HashMap 中的 Node 数组
+    // 每个 dictEntry 都有一个 next 指针，指向下一个 dictEntry
+    // 数组组织了 hash 的 idx，头下面的 next 指向了这个 idx 下的所有节点
+    // idx 和下面的子节点合起来是一个 bucket
     dictEntry **ht_table[2];
+    // 当前两个表已经使用的数量
     unsigned long ht_used[2];
+    // 两个 hash 表大小的指数，获取实际大小通过宏定义来计算
+    signed char ht_size_exp[2]; /* exponent of size. (size = 1<<exp) */
 
+    // 渐进式 rehash 的进度，idx=-1 时就是没有在 rehash
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
 
     /* Keep small vars at end for optimal (minimal) struct padding */
+    // 若 >0 则表示 rehash暂停， <0 是编码错误
     int16_t pauserehash; /* If >0 rehashing is paused (<0 indicates coding error) */
-    signed char ht_size_exp[2]; /* exponent of size. (size = 1<<exp) */
 };
 
 /* If safe is set to 1 this is a safe iterator, that means, you can call
